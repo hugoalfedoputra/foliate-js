@@ -48,19 +48,20 @@ const locales = 'en'
 const percentFormat = new Intl.NumberFormat(locales, { style: 'percent' })
 const listFormat = new Intl.ListFormat(locales, { style: 'short', type: 'conjunction' })
 
-const formatLanguageMap = x => {
+const formatLanguageMap = (x) => {
     if (!x) return ''
     if (typeof x === 'string') return x
     const keys = Object.keys(x)
     return x[keys[0]]
 }
 
-const formatOneContributor = contributor => typeof contributor === 'string'
-    ? contributor : formatLanguageMap(contributor?.name)
+const formatOneContributor = (contributor) =>
+    typeof contributor === 'string' ? contributor : formatLanguageMap(contributor?.name)
 
-const formatContributor = contributor => Array.isArray(contributor)
-    ? listFormat.format(contributor.map(formatOneContributor))
-    : formatOneContributor(contributor)
+const formatContributor = (contributor) =>
+    Array.isArray(contributor)
+        ? listFormat.format(contributor.map(formatOneContributor))
+        : formatOneContributor(contributor)
 
 class Reader {
     #tocView
@@ -91,7 +92,7 @@ class Reader {
                     ['Paginated', 'paginated'],
                     ['Scrolled', 'scrolled'],
                 ],
-                onclick: value => {
+                onclick: (value) => {
                     this.view?.renderer.setAttribute('flow', value)
                 },
             },
@@ -100,7 +101,8 @@ class Reader {
 
         $('#menu-button').append(menu.element)
         $('#menu-button > button').addEventListener('click', () =>
-            menu.element.classList.toggle('show'))
+            menu.element.classList.toggle('show')
+        )
         menu.groups.layout.select('paginated')
     }
     async open(file) {
@@ -112,7 +114,7 @@ class Reader {
 
         const { book } = this.view
         book.transformTarget?.addEventListener('data', ({ detail }) => {
-            detail.data = Promise.resolve(detail.data).catch(e => {
+            detail.data = Promise.resolve(detail.data).catch((e) => {
                 console.error(new Error(`Failed to load ${detail.name}`, { cause: e }))
                 return ''
             })
@@ -127,8 +129,7 @@ class Reader {
 
         const slider = $('#progress-slider')
         slider.dir = book.dir
-        slider.addEventListener('input', e =>
-            this.view.goToFraction(parseFloat(e.target.value)))
+        slider.addEventListener('input', (e) => this.view.goToFraction(parseFloat(e.target.value)))
         for (const fraction of this.view.getSectionFractions()) {
             const option = document.createElement('option')
             option.value = fraction
@@ -141,13 +142,14 @@ class Reader {
         document.title = title
         $('#side-bar-title').innerText = title
         $('#side-bar-author').innerText = formatContributor(book.metadata?.author)
-        Promise.resolve(book.getCover?.())?.then(blob =>
-            blob ? $('#side-bar-cover').src = URL.createObjectURL(blob) : null)
+        Promise.resolve(book.getCover?.())?.then((blob) =>
+            blob ? ($('#side-bar-cover').src = URL.createObjectURL(blob)) : null
+        )
 
         const toc = book.toc
         if (toc) {
-            this.#tocView = createTOCView(toc, href => {
-                this.view.goTo(href).catch(e => console.error(e))
+            this.#tocView = createTOCView(toc, (href) => {
+                this.view.goTo(href).catch((e) => console.error(e))
                 this.closeSideBar()
             })
             $('#toc-view').append(this.#tocView.element)
@@ -169,18 +171,17 @@ class Reader {
                     this.annotationsByValue.set(value, annotation)
                 }
             }
-            this.view.addEventListener('create-overlay', e => {
+            this.view.addEventListener('create-overlay', (e) => {
                 const { index } = e.detail
                 const list = this.annotations.get(index)
-                if (list) for (const annotation of list)
-                    this.view.addAnnotation(annotation)
+                if (list) for (const annotation of list) this.view.addAnnotation(annotation)
             })
-            this.view.addEventListener('draw-annotation', e => {
+            this.view.addEventListener('draw-annotation', (e) => {
                 const { draw, annotation } = e.detail
                 const { color } = annotation
                 draw(Overlayer.highlight, { color })
             })
-            this.view.addEventListener('show-annotation', e => {
+            this.view.addEventListener('show-annotation', (e) => {
                 const annotation = this.annotationsByValue.get(e.detail.value)
                 if (annotation.note) alert(annotation.note)
             })
@@ -189,7 +190,7 @@ class Reader {
     #handleKeydown(event) {
         const k = event.key
         if (k === 'ArrowLeft' || k === 'h') this.view.goLeft()
-        else if(k === 'ArrowRight' || k === 'l') this.view.goRight()
+        else if (k === 'ArrowRight' || k === 'l') this.view.goRight()
     }
     #onLoad({ detail: { doc } }) {
         doc.addEventListener('keydown', this.#handleKeydown.bind(this))
@@ -197,9 +198,7 @@ class Reader {
     #onRelocate({ detail }) {
         const { fraction, location, tocItem, pageItem } = detail
         const percent = percentFormat.format(fraction)
-        const loc = pageItem
-            ? `Page ${pageItem.label}`
-            : `Loc ${location.current}`
+        const loc = pageItem ? `Page ${pageItem.label}` : `Loc ${location.current}`
         const slider = $('#progress-slider')
         slider.style.visibility = 'visible'
         slider.value = fraction
@@ -208,32 +207,32 @@ class Reader {
     }
 }
 
-const open = async file => {
+const open = async (file) => {
     document.body.removeChild($('#drop-target'))
     const reader = new Reader()
     globalThis.reader = reader
     await reader.open(file)
 }
 
-const dragOverHandler = e => e.preventDefault()
-const dropHandler = e => {
+const dragOverHandler = (e) => e.preventDefault()
+const dropHandler = (e) => {
     e.preventDefault()
-    const item = Array.from(e.dataTransfer.items)
-        .find(item => item.kind === 'file')
+    const item = Array.from(e.dataTransfer.items).find((item) => item.kind === 'file')
     if (item) {
         const entry = item.webkitGetAsEntry()
-        open(entry.isFile ? item.getAsFile() : entry).catch(e => console.error(e))
+        open(entry.isFile ? item.getAsFile() : entry).catch((e) => console.error(e))
     }
 }
 const dropTarget = $('#drop-target')
 dropTarget.addEventListener('drop', dropHandler)
 dropTarget.addEventListener('dragover', dragOverHandler)
 
-$('#file-input').addEventListener('change', e =>
-    open(e.target.files[0]).catch(e => console.error(e)))
+$('#file-input').addEventListener('change', (e) =>
+    open(e.target.files[0]).catch((e) => console.error(e))
+)
 $('#file-button').addEventListener('click', () => $('#file-input').click())
 
 const params = new URLSearchParams(location.search)
 const url = params.get('url')
-if (url) open(url).catch(e => console.error(e))
+if (url) open(url).catch((e) => console.error(e))
 else dropTarget.style.visibility = 'visible'

@@ -1,9 +1,9 @@
-import * as CFI from "./epubcfi.js"
-import { TOCProgress, SectionProgress } from "./progress.js"
-import { Overlayer } from "./overlayer.js"
-import { textWalker } from "./text-walker.js"
+import * as CFI from './epubcfi.js'
+import { TOCProgress, SectionProgress } from './progress.js'
+import { Overlayer } from './overlayer.js'
+import { textWalker } from './text-walker.js'
 
-const SEARCH_PREFIX = "foliate-search:"
+const SEARCH_PREFIX = 'foliate-search:'
 
 const isZip = async (file) => {
     const arr = new Uint8Array(await file.slice(0, 4).arrayBuffer())
@@ -17,18 +17,18 @@ const isPDF = async (file) => {
     )
 }
 
-const isCBZ = ({ name, type }) => type === "application/vnd.comicbook+zip" || name.endsWith(".cbz")
+const isCBZ = ({ name, type }) => type === 'application/vnd.comicbook+zip' || name.endsWith('.cbz')
 
-const isFB2 = ({ name, type }) => type === "application/x-fictionbook+xml" || name.endsWith(".fb2")
+const isFB2 = ({ name, type }) => type === 'application/x-fictionbook+xml' || name.endsWith('.fb2')
 
 const isFBZ = ({ name, type }) =>
-    type === "application/x-zip-compressed-fb2" ||
-    name.endsWith(".fb2.zip") ||
-    name.endsWith(".fbz")
+    type === 'application/x-zip-compressed-fb2' ||
+    name.endsWith('.fb2.zip') ||
+    name.endsWith('.fbz')
 
 const makeZipLoader = async (file) => {
     const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } = await import(
-        "./vendor/zip.js"
+        './vendor/zip.js'
     )
     configure({ useWebWorkers: false })
     const reader = new ZipReader(new BlobReader(file))
@@ -74,7 +74,7 @@ const makeDirectoryLoader = async (entry) => {
                 )
         )
     )
-    const map = new Map(files.map(([file, path]) => [path.replace(entry.fullPath + "/", ""), file]))
+    const map = new Map(files.map(([file, path]) => [path.replace(entry.fullPath + '/', ''), file]))
     const decoder = new TextDecoder()
     const decode = (x) => (x ? decoder.decode(x) : null)
     const getBuffer = (name) => map.get(name)?.arrayBuffer() ?? null
@@ -95,42 +95,42 @@ const fetchFile = async (url) => {
 }
 
 export const makeBook = async (file) => {
-    if (typeof file === "string") file = await fetchFile(file)
+    if (typeof file === 'string') file = await fetchFile(file)
     let book
     if (file.isDirectory) {
         const loader = await makeDirectoryLoader(file)
-        const { EPUB } = await import("./epub.js")
+        const { EPUB } = await import('./epub.js')
         book = await new EPUB(loader).init()
-    } else if (!file.size) throw new NotFoundError("File not found")
+    } else if (!file.size) throw new NotFoundError('File not found')
     else if (await isZip(file)) {
         const loader = await makeZipLoader(file)
         if (isCBZ(file)) {
-            const { makeComicBook } = await import("./comic-book.js")
+            const { makeComicBook } = await import('./comic-book.js')
             book = makeComicBook(loader, file)
         } else if (isFBZ(file)) {
-            const { makeFB2 } = await import("./fb2.js")
+            const { makeFB2 } = await import('./fb2.js')
             const { entries } = loader
-            const entry = entries.find((entry) => entry.filename.endsWith(".fb2"))
+            const entry = entries.find((entry) => entry.filename.endsWith('.fb2'))
             const blob = await loader.loadBlob((entry ?? entries[0]).filename)
             book = await makeFB2(blob)
         } else {
-            const { EPUB } = await import("./epub.js")
+            const { EPUB } = await import('./epub.js')
             book = await new EPUB(loader).init()
         }
     } else if (await isPDF(file)) {
-        const { makePDF } = await import("./pdf.js")
+        const { makePDF } = await import('./pdf.js')
         book = await makePDF(file)
     } else {
-        const { isMOBI, MOBI } = await import("./mobi.js")
+        const { isMOBI, MOBI } = await import('./mobi.js')
         if (await isMOBI(file)) {
-            const fflate = await import("./vendor/fflate.js")
+            const fflate = await import('./vendor/fflate.js')
             book = await new MOBI({ unzlib: fflate.unzlibSync }).open(file)
         } else if (isFB2(file)) {
-            const { makeFB2 } = await import("./fb2.js")
+            const { makeFB2 } = await import('./fb2.js')
             book = await makeFB2(file)
         }
     }
-    if (!book) throw new UnsupportedTypeError("File type not supported")
+    if (!book) throw new UnsupportedTypeError('File type not supported')
     return book
 }
 
@@ -145,7 +145,7 @@ class CursorAutohider {
         this.#state = state
         if (this.#state.hidden) this.hide()
         this.#el.addEventListener(
-            "mousemove",
+            'mousemove',
             ({ screenX, screenY }) => {
                 // check if it actually moved
                 if (screenX === this.#state.x && screenY === this.#state.y) return
@@ -161,11 +161,11 @@ class CursorAutohider {
         return new CursorAutohider(el, this.#check, this.#state)
     }
     hide() {
-        this.#el.style.cursor = "none"
+        this.#el.style.cursor = 'none'
         this.#state.hidden = true
     }
     show() {
-        this.#el.style.removeProperty("cursor")
+        this.#el.style.removeProperty('cursor')
         this.#state.hidden = false
     }
 }
@@ -178,7 +178,7 @@ class History extends EventTarget {
         if (last === x || (last?.fraction && last.fraction === x.fraction)) return
         this.#arr[++this.#index] = x
         this.#arr.length = this.#index + 1
-        this.dispatchEvent(new Event("index-change"))
+        this.dispatchEvent(new Event('index-change'))
     }
     replaceState(x) {
         const index = this.#index
@@ -189,16 +189,16 @@ class History extends EventTarget {
         if (index <= 0) return
         const detail = { state: this.#arr[index - 1] }
         this.#index = index - 1
-        this.dispatchEvent(new CustomEvent("popstate", { detail }))
-        this.dispatchEvent(new Event("index-change"))
+        this.dispatchEvent(new CustomEvent('popstate', { detail }))
+        this.dispatchEvent(new Event('index-change'))
     }
     forward() {
         const index = this.#index
         if (index >= this.#arr.length - 1) return
         const detail = { state: this.#arr[index + 1] }
         this.#index = index + 1
-        this.dispatchEvent(new CustomEvent("popstate", { detail }))
-        this.dispatchEvent(new Event("index-change"))
+        this.dispatchEvent(new CustomEvent('popstate', { detail }))
+        this.dispatchEvent(new Event('index-change'))
     }
     get canGoBack() {
         return this.#index > 0
@@ -217,7 +217,7 @@ const languageInfo = (lang) => {
     try {
         const canonical = Intl.getCanonicalLocales(lang)[0]
         const locale = new Intl.Locale(canonical)
-        const isCJK = ["zh", "ja", "kr"].includes(locale.language)
+        const isCJK = ['zh', 'ja', 'kr'].includes(locale.language)
         const direction = (locale.getTextInfo?.() ?? locale.textInfo)?.direction
         return { canonical, locale, isCJK, direction }
     } catch (e) {
@@ -227,24 +227,24 @@ const languageInfo = (lang) => {
 }
 
 export class View extends HTMLElement {
-    #root = this.attachShadow({ mode: "open" })
+    #root = this.attachShadow({ mode: 'open' })
     #sectionProgress
     #tocProgress
     #pageProgress
     #searchResults = new Map()
-    #cursorAutohider = new CursorAutohider(this, () => this.hasAttribute("autohide-cursor"))
+    #cursorAutohider = new CursorAutohider(this, () => this.hasAttribute('autohide-cursor'))
     isFixedLayout = false
     lastLocation
     history = new History()
     constructor() {
         super()
-        this.history.addEventListener("popstate", ({ detail }) => {
+        this.history.addEventListener('popstate', ({ detail }) => {
             const resolved = this.resolveNavigation(detail.state)
             this.renderer.goTo(resolved)
         })
     }
     async open(book) {
-        if (typeof book === "string" || typeof book.arrayBuffer === "function" || book.isDirectory)
+        if (typeof book === 'string' || typeof book.arrayBuffer === 'function' || book.isDirectory)
             book = await makeBook(book)
         this.book = book
         this.language = languageInfo(book.metadata?.language)
@@ -270,18 +270,18 @@ export class View extends HTMLElement {
             })
         }
 
-        this.isFixedLayout = this.book.rendition?.layout === "pre-paginated"
+        this.isFixedLayout = this.book.rendition?.layout === 'pre-paginated'
         if (this.isFixedLayout) {
-            await import("./fixed-layout.js")
-            this.renderer = document.createElement("foliate-fxl")
+            await import('./fixed-layout.js')
+            this.renderer = document.createElement('foliate-fxl')
         } else {
-            await import("./paginator.js")
-            this.renderer = document.createElement("foliate-paginator")
+            await import('./paginator.js')
+            this.renderer = document.createElement('foliate-paginator')
         }
-        this.renderer.setAttribute("exportparts", "head,foot,filter,container")
-        this.renderer.addEventListener("load", (e) => this.#onLoad(e.detail))
-        this.renderer.addEventListener("relocate", (e) => this.#onRelocate(e.detail))
-        this.renderer.addEventListener("create-overlayer", (e) =>
+        this.renderer.setAttribute('exportparts', 'head,foot,filter,container')
+        this.renderer.addEventListener('load', (e) => this.#onLoad(e.detail))
+        this.renderer.addEventListener('relocate', (e) => this.#onRelocate(e.detail))
+        this.renderer.addEventListener('create-overlayer', (e) =>
             e.detail.attach(this.#createOverlayer(e.detail))
         )
         this.renderer.open(book)
@@ -292,7 +292,7 @@ export class View extends HTMLElement {
             const playbackActiveClass = book.media.playbackActiveClass
             this.mediaOverlay = book.getMediaOverlay()
             let lastActive
-            this.mediaOverlay.addEventListener("highlight", (e) => {
+            this.mediaOverlay.addEventListener('highlight', (e) => {
                 const resolved = this.resolveNavigation(e.detail.text)
                 this.renderer.goTo(resolved).then(() => {
                     const { doc } = this.renderer
@@ -305,7 +305,7 @@ export class View extends HTMLElement {
                     lastActive = new WeakRef(el)
                 })
             })
-            this.mediaOverlay.addEventListener("unhighlight", () => {
+            this.mediaOverlay.addEventListener('unhighlight', () => {
                 const el = lastActive?.deref()
                 if (el) {
                     el.classList.remove(activeClass)
@@ -330,8 +330,8 @@ export class View extends HTMLElement {
     goToTextStart() {
         return this.goTo(
             this.book.landmarks?.find(
-                (m) => m.type.includes("bodymatter") || m.type.includes("text")
-            )?.href ?? this.book.sections.findIndex((s) => s.linear !== "no")
+                (m) => m.type.includes('bodymatter') || m.type.includes('text')
+            )?.href ?? this.book.sections.findIndex((s) => s.linear !== 'no')
         )
     }
     async init({ lastLocation, showTextStart }) {
@@ -354,43 +354,43 @@ export class View extends HTMLElement {
         const pageItem = this.#pageProgress?.getProgress(index, range)
         const cfi = this.getCFI(index, range)
         this.lastLocation = { ...progress, tocItem, pageItem, cfi, range }
-        if (reason === "snap" || reason === "page" || reason === "scroll")
+        if (reason === 'snap' || reason === 'page' || reason === 'scroll')
             this.history.replaceState(cfi)
-        this.#emit("relocate", this.lastLocation)
+        this.#emit('relocate', this.lastLocation)
     }
     #onLoad({ doc, index }) {
         // set language and dir if not already set
-        doc.documentElement.lang ||= this.language.canonical ?? ""
-        if (!this.language.isCJK) doc.documentElement.dir ||= this.language.direction ?? ""
+        doc.documentElement.lang ||= this.language.canonical ?? ''
+        if (!this.language.isCJK) doc.documentElement.dir ||= this.language.direction ?? ''
 
         this.#handleLinks(doc, index)
         this.#cursorAutohider.cloneFor(doc.documentElement)
 
-        this.#emit("load", { doc, index })
+        this.#emit('load', { doc, index })
     }
     #handleLinks(doc, index) {
         const { book } = this
         const section = book.sections[index]
-        doc.addEventListener("click", (e) => {
-            const a = e.target.closest("a[href]")
+        doc.addEventListener('click', (e) => {
+            const a = e.target.closest('a[href]')
             if (!a) return
             e.preventDefault()
-            const href_ = a.getAttribute("href")
+            const href_ = a.getAttribute('href')
             const href = section?.resolveHref?.(href_) ?? href_
             if (book?.isExternal?.(href))
-                Promise.resolve(this.#emit("external-link", { a, href }, true))
-                    .then((x) => (x ? globalThis.open(href, "_blank") : null))
+                Promise.resolve(this.#emit('external-link', { a, href }, true))
+                    .then((x) => (x ? globalThis.open(href, '_blank') : null))
                     .catch((e) => console.error(e))
             else {
                 let internalHref = href
                 if (!book.resolveHref(href)) {
-                    const hashIndex = href_.indexOf("#")
+                    const hashIndex = href_.indexOf('#')
                     if (hashIndex >= 0) {
                         const hash = href_.slice(hashIndex)
                         internalHref = section?.resolveHref?.(hash) ?? href
                     }
                 }
-                Promise.resolve(this.#emit("link", { a, href: internalHref }, true))
+                Promise.resolve(this.#emit('link', { a, href: internalHref }, true))
                     .then((x) => (x ? this.goTo(internalHref) : null))
                     .catch((e) => console.error(e))
             }
@@ -398,8 +398,10 @@ export class View extends HTMLElement {
     }
     async addAnnotation(annotation, remove) {
         const { value } = annotation
+        console.debug(`[view.js] addAnnotation called for value (CFI): ${value}, remove: ${remove}`)
+
         if (value.startsWith(SEARCH_PREFIX)) {
-            const cfi = value.replace(SEARCH_PREFIX, "")
+            const cfi = value.replace(SEARCH_PREFIX, '')
             const { index, anchor } = await this.resolveNavigation(cfi)
             const obj = this.#getOverlayer(index)
             if (obj) {
@@ -421,10 +423,11 @@ export class View extends HTMLElement {
             if (!remove) {
                 const range = doc ? anchor(doc) : anchor
                 const draw = (func, opts) => overlayer.add(value, range, func, opts)
-                this.#emit("draw-annotation", { draw, annotation, doc, range })
+                console.debug(`[view.js] Emitting 'draw-annotation' for value (CFI): ${value}`)
+                this.#emit('draw-annotation', { draw, annotation, doc, range })
             }
         }
-        const label = this.#tocProgress.getProgress(index)?.label ?? ""
+        const label = this.#tocProgress.getProgress(index)?.label ?? ''
         return { index, label }
     }
     deleteAnnotation(annotation) {
@@ -434,13 +437,16 @@ export class View extends HTMLElement {
         return this.renderer.getContents().find((x) => x.index === index && x.overlayer)
     }
     #createOverlayer({ doc, index }) {
+        console.debug(
+            `[view.js] #createOverlayer called for index: ${index}. Creating new Overlayer instance.`
+        )
         const overlayer = new Overlayer(doc)
         doc.addEventListener(
-            "click",
+            'click',
             (e) => {
                 const [value, range] = overlayer.hitTest(e)
                 if (value && !value.startsWith(SEARCH_PREFIX)) {
-                    this.#emit("show-annotation", { value, index, range })
+                    this.#emit('show-annotation', { value, index, range })
                 }
             },
             false
@@ -449,7 +455,8 @@ export class View extends HTMLElement {
         const list = this.#searchResults.get(index)
         if (list) for (const item of list) this.addAnnotation(item)
 
-        this.#emit("create-overlay", { index })
+        console.debug(`[view.js] Emitting 'create-overlay' for index: ${index}`)
+        this.#emit('create-overlay', { index })
         return overlayer
     }
     async showAnnotation(annotation) {
@@ -459,7 +466,7 @@ export class View extends HTMLElement {
             const { index, anchor } = resolved
             const { doc } = this.#getOverlayer(index)
             const range = anchor(doc)
-            this.#emit("show-annotation", { value, index, range })
+            this.#emit('show-annotation', { value, index, range })
         }
     }
     getCFI(index, range) {
@@ -478,8 +485,8 @@ export class View extends HTMLElement {
     }
     resolveNavigation(target) {
         try {
-            if (typeof target === "number") return { index: target }
-            if (typeof target.fraction === "number") {
+            if (typeof target === 'number') return { index: target }
+            if (typeof target.fraction === 'number') {
                 const [index, anchor] = this.#sectionProgress.getSection(target.fraction)
                 return { index, anchor }
             }
@@ -549,10 +556,10 @@ export class View extends HTMLElement {
         await this.renderer.next(distance)
     }
     goLeft() {
-        return this.book.dir === "rtl" ? this.next() : this.prev()
+        return this.book.dir === 'rtl' ? this.next() : this.prev()
     }
     goRight() {
-        return this.book.dir === "rtl" ? this.prev() : this.next()
+        return this.book.dir === 'rtl' ? this.prev() : this.next()
     }
     async *#searchSection(matcher, query, index) {
         const doc = await this.book.sections[index].createDocument()
@@ -575,7 +582,7 @@ export class View extends HTMLElement {
     }
     async *search(opts) {
         this.clearSearch()
-        const { searchMatcher } = await import("./search.js")
+        const { searchMatcher } = await import('./search.js')
         const { query, index } = opts
         const matcher = searchMatcher(textWalker, { defaultLocale: this.language, ...opts })
         const iter =
@@ -592,7 +599,7 @@ export class View extends HTMLElement {
                 this.#searchResults.set(result.index, list)
                 for (const item of list) this.addAnnotation(item)
                 yield {
-                    label: this.#tocProgress.getProgress(result.index)?.label ?? "",
+                    label: this.#tocProgress.getProgress(result.index)?.label ?? '',
                     subitems: result.subitems,
                 }
             } else {
@@ -604,17 +611,17 @@ export class View extends HTMLElement {
                 yield result
             }
         }
-        yield "done"
+        yield 'done'
     }
     clearSearch() {
         for (const list of this.#searchResults.values())
             for (const item of list) this.deleteAnnotation(item)
         this.#searchResults.clear()
     }
-    async initTTS(granularity = "word", nodeFilter, highlighter) {
+    async initTTS(granularity = 'word', nodeFilter, highlighter) {
         const doc = this.renderer.getContents()[0].doc
         if (this.tts && this.tts.doc === doc) return
-        const { TTS } = await import("./tts.js")
+        const { TTS } = await import('./tts.js')
         this.tts = new TTS(
             doc,
             textWalker,
@@ -629,4 +636,4 @@ export class View extends HTMLElement {
     }
 }
 
-customElements.define("foliate-view", View)
+customElements.define('foliate-view', View)

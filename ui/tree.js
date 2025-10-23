@@ -1,5 +1,4 @@
-const createSVGElement = tag =>
-    document.createElementNS('http://www.w3.org/2000/svg', tag)
+const createSVGElement = (tag) => document.createElementNS('http://www.w3.org/2000/svg', tag)
 
 const createExpanderIcon = () => {
     const svg = createSVGElement('svg')
@@ -25,19 +24,21 @@ const createTOCItemElement = (list, map, onclick) => {
         if (href) {
             if (!map.has(href)) map.set(href, a)
             a.href = href
-            a.onclick = event => {
+            a.onclick = (event) => {
                 event.preventDefault()
                 onclick(href)
             }
-        } else a.onclick = event => a.firstElementChild?.onclick(event)
+        } else a.onclick = (event) => a.firstElementChild?.onclick(event)
 
         const li = document.createElement('li')
         li.setAttribute('role', 'none')
+        li.style.marginLeft = '-1.5rem'
+        li.style.paddingBottom = '0.5rem'
         li.append(a)
         if (subitems?.length) {
             a.setAttribute('aria-expanded', 'false')
             const expander = createExpanderIcon()
-            expander.onclick = event => {
+            expander.onclick = (event) => {
                 event.preventDefault()
                 event.stopPropagation()
                 const expanded = a.getAttribute('aria-expanded')
@@ -48,7 +49,7 @@ const createTOCItemElement = (list, map, onclick) => {
             ol.id = makeID()
             ol.setAttribute('role', 'group')
             a.setAttribute('aria-owns', ol.id)
-            ol.replaceChildren(...subitems.map(item => createItem(item, depth + 1)))
+            ol.replaceChildren(...subitems.map((item) => createItem(item, depth + 1)))
             li.append(ol)
         }
         return li
@@ -63,9 +64,9 @@ export const createTOCView = (toc, onclick) => {
     const list = []
     const map = new Map()
     const createItem = createTOCItemElement(list, map, onclick)
-    $toc.replaceChildren(...toc.map(item => createItem(item)))
+    $toc.replaceChildren(...toc.map((item) => createItem(item)))
 
-    const isTreeItem = item => item?.getAttribute('role') === 'treeitem'
+    const isTreeItem = (item) => item?.getAttribute('role') === 'treeitem'
     const getParents = function* (el) {
         for (let parent = el.parentNode; parent !== $toc; parent = parent.parentNode) {
             const item = parent.previousElementSibling
@@ -93,7 +94,7 @@ export const createTOCView = (toc, onclick) => {
         }
     })
 
-    const setCurrentHref = href => {
+    const setCurrentHref = (href) => {
         if (currentItem) {
             currentItem.removeAttribute('aria-current')
             currentItem.tabIndex = -1
@@ -104,66 +105,66 @@ export const createTOCView = (toc, onclick) => {
             currentItem.tabIndex = 0
             return
         }
-        for (const item of getParents(el))
-            item.setAttribute('aria-expanded', 'true')
+        for (const item of getParents(el)) item.setAttribute('aria-expanded', 'true')
         el.setAttribute('aria-current', 'page')
         el.tabIndex = 0
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
         currentItem = el
     }
 
-    const acceptNode = node => isTreeItem(node) && node.offsetParent
-        ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+    const acceptNode = (node) =>
+        isTreeItem(node) && node.offsetParent ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
     const iter = document.createTreeWalker($toc, 1, { acceptNode })
-    const getIter = current => (iter.currentNode = current, iter)
+    const getIter = (current) => ((iter.currentNode = current), iter)
 
-    for (const el of list) el.addEventListener('keydown', event => {
-        let stop = false
-        const { currentTarget, key } = event
-        switch (key) {
-            case ' ':
-            case 'Enter':
-                currentTarget.click()
-                stop = true
-                break
-            case 'ArrowDown':
-                getIter(currentTarget).nextNode()?.focus()
-                stop = true
-                break
-            case 'ArrowUp':
-                getIter(currentTarget).previousNode()?.focus()
-                stop = true
-                break
-            case 'ArrowLeft':
-                if (currentTarget.getAttribute('aria-expanded') === 'true')
-                    currentTarget.setAttribute('aria-expanded', 'false')
-                else getParents(currentTarget).next()?.value?.focus()
-                stop = true
-                break
-            case 'ArrowRight':
-                if (currentTarget.getAttribute('aria-expanded') === 'true')
+    for (const el of list)
+        el.addEventListener('keydown', (event) => {
+            let stop = false
+            const { currentTarget, key } = event
+            switch (key) {
+                case ' ':
+                case 'Enter':
+                    currentTarget.click()
+                    stop = true
+                    break
+                case 'ArrowDown':
                     getIter(currentTarget).nextNode()?.focus()
-                else if (currentTarget.getAttribute('aria-owns'))
-                    currentTarget.setAttribute('aria-expanded', 'true')
-                stop = true
-                break
-            case 'Home':
-                list[0].focus()
-                stop = true
-                break
-            case 'End': {
-                const last = list[list.length - 1]
-                if (last.offsetParent) last.focus()
-                else getIter(last).previousNode()?.focus()
-                stop = true
-                break
+                    stop = true
+                    break
+                case 'ArrowUp':
+                    getIter(currentTarget).previousNode()?.focus()
+                    stop = true
+                    break
+                case 'ArrowLeft':
+                    if (currentTarget.getAttribute('aria-expanded') === 'true')
+                        currentTarget.setAttribute('aria-expanded', 'false')
+                    else getParents(currentTarget).next()?.value?.focus()
+                    stop = true
+                    break
+                case 'ArrowRight':
+                    if (currentTarget.getAttribute('aria-expanded') === 'true')
+                        getIter(currentTarget).nextNode()?.focus()
+                    else if (currentTarget.getAttribute('aria-owns'))
+                        currentTarget.setAttribute('aria-expanded', 'true')
+                    stop = true
+                    break
+                case 'Home':
+                    list[0].focus()
+                    stop = true
+                    break
+                case 'End': {
+                    const last = list[list.length - 1]
+                    if (last.offsetParent) last.focus()
+                    else getIter(last).previousNode()?.focus()
+                    stop = true
+                    break
+                }
             }
-        }
-        if (stop) {
-            event.preventDefault()
-            event.stopPropagation()
-        }
-    })
+            if (stop) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+        })
 
     return { element: $toc, setCurrentHref }
 }
